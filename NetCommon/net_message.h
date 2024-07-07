@@ -37,6 +37,7 @@ namespace olc
 			template<typename DataType>
 			friend message<T>& operator << (message<T>& msg, const DataType& data)
 			{
+				// check the type of the data being pushed is  trivially copyable
 				static_assert(std::is_standard_layout<DataType>::value, "Data is too complex to be pushed into vector");
 
 				//Cache current size of vector, as this will be the point we insert the data
@@ -55,6 +56,7 @@ namespace olc
 				return msg;
 			}
 
+
 			template<typename DataType>
 			friend message<T>& operator >> (message<T>& msg, DataType& data)
 			{
@@ -64,6 +66,7 @@ namespace olc
 				// cache the location towards the end of the vector where the pulled data starts
 				size_t i = msg.body.size() - sizeof(DataType);
 
+				// Physically copy the data from the vector into the user variable
 				std::memcpy(&data, msg.body.data() + i, sizeof(DataType));
 
 				//shrink the vector to remove read bytes and reset end position
@@ -73,9 +76,29 @@ namespace olc
 				msg.header.size = msg.size();
 
 				//return the target message so it can be "chained"
-
 				return msg;
 			}
+
 		};
+
+
+		//forward declare the connection
+		template<typename T>
+		class connection;
+
+		template <typename T>
+		struct owned_message
+		{
+			std::shared_ptr < connection<T>> remote = nullptr;
+			message<T> msg;
+
+			//again, a friendly string maker
+			friend std::ostream& operator<<(std::ostream& os, const owned_message<T>& msg)
+			{
+				os << msg.msg;
+				return os;
+			}
+		};
+
 	}
 }
