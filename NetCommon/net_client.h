@@ -11,7 +11,7 @@ namespace olc
 		template<typename T>
 		class client_interface
 		{
-			client_interface() : m_socket(m_context)
+			client_interface()
 			{
 				//initilize the socket with the io context, os it can do stuff
 			}
@@ -28,15 +28,18 @@ namespace olc
 			{
 				try
 				{
-					// Create connection
-					m_connection = std::make_unique<connection<T>>(); //TODO
-
-					//resolve hostname/ip-adress into tangible physicall adress
+					//resolve hostname/ip-adress into tangible physical address
 					asio::ip::tcp::resolver resolver(m_context);
-					m_endpoints = resolver.resolve(host, std::to_string(port));
+					asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(host, std::to_string(port));
+
+					// Create connection
+					m_connection = std::make_unique<connection<T>>(
+						connection<T>::owner::client,
+						m_context,
+						asio::ip::tcp::socket(m_context), m_qMessagesIn);
 
 					// tell the connection object to connect to the server
-					m_connection->ConnectToServer(m_endpoints);
+					m_connection->ConnectToServer(endpoints);
 
 					//start context thread
 					thrContext = std::thread([this]() { m_context.run(); });
